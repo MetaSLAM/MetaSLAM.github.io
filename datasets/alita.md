@@ -10,30 +10,117 @@ hide_footer: false
 # hero_image: /img/posts/alita/urban.png
 ---
 
-## Background and Major Contributions
-For long-term autonomy, most place recognition methods are mainly evaluated on simplified scenarios or simulated datasets, which cannot provide solid evidence to evaluate the readiness for current Simultaneous Localization and Mapping (SLAM).This paper presents a long-term place recognition dataset for use in mobile localization under large-scale dynamic environments.This dataset includes a campus-scale track and a city-scale track.The campus track focuses on the long-term property and is recorded with a LiDAR device and an omnidirectional camera on 10 trajectories. Each trajectory is repeatedly recorded 8 times under variant illumination conditions. The city track focuses on the large-scale property and is recorded only with the LiDAR device on 120km trajectory, which contains open streets, residential areas, natural terrains, etc. They include 200 hours of raw data of all kinds of scenarios within urban environments. The ground truth position for both tracks is provided on each trajectory, obtained from the Global Position System with an additional General ICP-based point cloud refinement. To simplify the evaluation procedure, we also provide the Python-API with a set of place recognition metrics proposed to quickly load our dataset and evaluate the recognition performance against different methods.This dataset targets finding methods with high place recognition accuracy and robustness and providing real robotic systems with long-term autonomy. We provide both the dataset and tools at[ALITA](https://github.com/MetaSLAM/ALITA)
+<figure>
+ <img src="/img/posts/alita/header.png">
+</figure>
 
-## The major properties of ALITA
+## Introduction
+We believe that an ideal place recognition dataset for long-term autonomy should fulfill the following criteria:
 
-Our datasets contain two tracks: 
+* Evaluation on realistic and dynamic environments rather than simplified scenarios or simulations.
+* Coverage of both small-scale, large-scale and overlapped tracks.
+* Inclusion of diverse environmental conditions and sensor setups.
+* Facilitation of benchmarking for various recognition tasks.
+
+We introduce a long-term place recognition dataset designed for mobile localization in large-scale dynamic environments. The dataset features a campus-scale track with recordings from a LiDAR device and an omnidirectional camera across 10 trajectories, each recorded 8 times under varying illumination conditions, and a city-scale track recorded solely with a LiDAR device over a 120 km trajectory covering diverse urban areas. It includes 200 hours of raw data with ground truth positions refined through General ICP-based point cloud methods. This dataset aims to identify methods with high recognition accuracy and robustness, supporting long-term autonomy in robotic systems.
+
+## Dataset Description
+
+ALITA dataset is composed by two dataset:
+
 * Urban dataset, which records LiDAR data inputs in a city-scale urban-like area for 50 segments and 120km trajectory in total.
 * Campus dataset, recorded under a campus-scale environment, where we gathered the omnidirectional visual inputs and LiDAR inputs on 10 different trajectories for 8 repeated times, under different illuminations and viewpoints; this dataset targets long-term localization challenge.
 
-Below figures give a better visualization of its scale, and Table.1 shows the comparison of different datasets. Most datasets are targeted at short-term, fixed conditions or viewpoints place recognition tasks, so it is hard to evaluate the localization performance in real-world long-term, large-scale applications. Compared to existing datasets, our **Urban** dataset covers variant 3D scenarios for comprehensive 3D place recognition evaluation and multi-session SLAM. And our **Campus** dataset repeatedly covers diverse campus areas with dynamic objects, illumination, and viewpoint differences, which is suitable to evaluate long-term re-localization or incremental learning ability.
+Compared to existing datasets
+* Our **Urban** dataset covers variant 3D scenarios for comprehensive 3D place recognition evaluation and multi-session SLAM. 
+* Our **Campus** dataset repeatedly covers diverse campus areas with dynamic objects, illumination, and viewpoint differences, which is suitable to evaluate long-term re-localization or incremental learning ability.
 
 <figure>
  <img src="/img/posts/alita/alita_city.gif" style="width:49%" />
  <img src="/img/posts/alita/alita_campus.gif" style="width:49%" />
  <figcaption>
-Datasets for City of Pittsburgh and Campus of Carnegie Mellon University 
+Urban datasets[City of Pittsburgh] and Campus dataset[Carnegie Mellon University] 
  </figcaption>
 </figure>
 
 <figure>
  <img src="/img/posts/alita/data_compare.png" style="width:70%" />
  <figcaption>
-Table.1. Property comparsion with other datasets.
+Property comparsion with other datasets.
  </figcaption>
+</figure>
+
+## Data Format
+
+* Raw Data
+```
+.
+└── Rosbag/
+    ├── Urban/
+    │   ├── sensor_01.bag               // rosbag with two topics : /imu/data, /velodyne_packets
+    │   ├── ...                         // representing IMU and LiDAR respectively.
+    │   └── sensor_50.bag
+    └── Campus/
+        ├── Traj_01/
+        │   ├── day_forward_1.bag       // rosbag with three topics : /imu/data, /velodyne_points and /camera/image
+        │   ├── day_forward_2.bag       // representing IMU, LiDAR and LiDAR respectively.
+        │   ├── day_back_1.bag
+        │   ├── day_back_2.bag
+        │   ├── night_forward_1.bag
+        │   ├── night_forward_2.bag
+        │   ├── night_back_1.bag
+        │   └── night_back_2.bag
+        ├── ...
+        └── Traj_10
+```
+* Processed Data
+```
+.
+└── Dataset/
+    ├── Urban/
+    │   ├── Traj_01/
+    │   │   ├── CloudGlobal.pcd          // Global map
+    │   │   ├── poses.csv                // Key poses generated by SLAM
+    │   │   ├── correspondences.csv      // Correspondences between the poses in two trajectories with overlaps
+    │   │   ├── Clouds/                  // Submap generated by querying points within 50 meters
+    │   │   │   ├── <timestamp>.pcd      // centered as each pose from the global map.
+    │   │   │   └── ...
+    │   │   └── gps.txt                  // Recorded GPS data
+    │   ├── ...
+    │   └── Traj_50
+    └── Campus/
+        ├── Traj_01/
+        │   ├── day_forward_1/
+        │   │   ├── CloudGlobal.pcd      
+        │   │   ├── poses_intra.csv      // Poses under the global coordinate of day_forward_1 within the same trajectory
+        │   │   ├── poses_inter.csv      // Key poses generated by SLAM
+        │   │   ├── Clouds/        
+        │   │   │   ├── <timestamp>.pcd
+        │   │   │   └── ...
+        │   │   └── Panoramas/           // An omnidirectional picture with a resolution of 1024 × 512
+        │   │       ├── <timestamp>.png
+        │   │       └── ...
+        │   ├── day_forward_2
+        │   ├── day_back_1
+        │   ├── day_back_2
+        │   ├── night_forward_1
+        │   ├── night_forward_2
+        │   ├── night_back_1
+        │   └── night_back_2
+        ├── ...
+        └── Traj_10
+```
+
+## Dataset Release
+
+* Raw Data - [Download Link](https://www.dropbox.com/sh/svxb160qcrq0j3e/AABPvyeOxNPMKuTMERfEcwaPa?dl=0)
+* Processed Data (human-parseable data) - [Download Link](https://www.dropbox.com/scl/fo/9o3uhejbyidxxwlnx912m/h?rlkey=bpryzdghexxez9p1m9100viqd&dl=0
+)
+
+## Benchmark Experiments
+
+<figure>
+ <img src="/img/posts/alita/exp.png">
 </figure>
 
 ## Publications
